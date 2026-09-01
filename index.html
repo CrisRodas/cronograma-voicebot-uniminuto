@@ -107,12 +107,12 @@
 </head>
 <body>
     <h1>📊 Cronograma Desarrollo Voicebot UNIMINUTO</h1>
-    <p class="subtitle">Voicebot Perfilador UNIMINUTO | Inicio: 12/08/26 | Fin: 02/10/26</p>
+    <p class="subtitle">Voicebot Perfilador UNIMINUTO | Inicio: 12/08/26 | Fin: 14/09/26</p>
     
     <div class="project-info">
         <div><div class="label">Proyecto</div><div class="value">Voicebot Perfilador UNIMINUTO</div></div>
         <div><div class="label">Inicio</div><div class="value">12/08/2026</div></div>
-        <div><div class="label">Finalización</div><div class="value">02/10/2026</div></div>
+        <div><div class="label">Finalización</div><div class="value">14/09/2026</div></div>
         <div><div class="label">No iniciadas</div><div class="value" id="statNotStarted">-</div></div>
         <div><div class="label">En progreso</div><div class="value" id="statInProgress">-</div></div>
         <div><div class="label">Completas</div><div class="value" id="statDone">-</div></div>
@@ -165,7 +165,7 @@
     <script>
     // Datos EXACTOS del Excel del cronograma Voicebot UNIMINUTO
     const tasks = [
-        { id: "",  name: "Voicebot Perfilador UNIMINUTO", estado: "En progreso", dev: "Cristian Rodas - Nicolas Yescas", days: 37, start: "2026-08-12", end: "2026-10-02", preds: "", risk: "-", type: "project" },
+        { id: "",  name: "Voicebot Perfilador UNIMINUTO", estado: "En progreso", dev: "Cristian Rodas - Nicolas Yescas", days: 25, start: "2026-08-12", end: "2026-09-14", preds: "", risk: "-", type: "project" },
 
         { id: "",  name: "Configuración de Flujos Retell AI & Base de Conocimiento", estado: "Terminado", dev: "Nicolas Yescas", days: 3, start: "2026-08-12", end: "2026-08-14", preds: "", risk: "-", type: "group" },
         { id: "1", name: "Configuración Agente Sofía & Legal Ley 1581", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-12", end: "2026-08-12", preds: "", risk: "-", type: "task", initPct: 100 },
@@ -276,7 +276,7 @@
 
     // Rango del proyecto
     const projectStart = new Date(2026, 7, 12);
-    const projectEnd = new Date(2026, 9, 2);
+    const projectEnd = new Date(2026, 8, 14);
 
     // Generar días hábiles
     function getBusinessDaysRange(start, end) {
