@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma Desarrollo Voicebot UNIMINUTO</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+        h1 { text-align: center; margin-bottom: 5px; color: #00d4ff; font-size: 1.4em; }
+        h2 { margin: 30px 0 15px; color: #00d4ff; font-size: 1.1em; }
+        .subtitle { text-align: center; color: #aaa; font-size: 0.85em; margin-bottom: 20px; }
+        
+        .gantt-container { overflow-x: auto; margin-bottom: 40px; }
+        table.gantt { border-collapse: collapse; width: 100%; min-width: 1500px; }
+        table.gantt th, table.gantt td { padding: 4px 5px; font-size: 0.72em; border: 1px solid #2a2a4a; }
+        table.gantt th { background: #16213e; position: sticky; top: 0; z-index: 2; color: #ccc; }
+        table.gantt td.task-info { white-space: nowrap; background: #16213e; }
+        table.gantt td.day-cell { width: 26px; min-width: 26px; text-align: center; position: relative; padding: 0; height: 24px; }
+        
+        .row-project { background: #0a1628 !important; }
+        .row-project td { background: #0a1628 !important; font-weight: bold; color: #00d4ff; }
+        .row-group { background: #0f2a4a !important; }
+        .row-group td { background: #0f2a4a !important; font-weight: bold; color: #ddd; }
+        
+        .bar { height: 16px; border-radius: 2px; position: absolute; top: 50%; transform: translateY(-50%); left: 0; right: 0; }
+        .bar-nicolas { background: linear-gradient(90deg, #4CAF50, #66BB6A); }
+        .bar-cristian { background: linear-gradient(90deg, #2196F3, #64B5F6); }
+        .bar-equipo { background: linear-gradient(90deg, #FF9800, #FFB74D); }
+        .bar-s4l { background: linear-gradient(90deg, #9C27B0, #BA68C8); }
+        .bar-group { background: linear-gradient(90deg, #37474F, #546E7A); border-radius: 0; height: 8px; }
+        .bar-project { background: linear-gradient(90deg, #00838F, #00ACC1); border-radius: 0; height: 8px; }
+        .bar { overflow: hidden; }
+        .bar-progress { position: absolute; top: 0; left: 0; bottom: 0; background: rgba(255,255,255,0.85); }
+        .bar-progress-track { background: rgba(0,0,0,0.35) !important; }
+        .pct-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 6.5px; color: #fff; font-weight: bold; text-shadow: 0 0 3px #000; z-index: 3; white-space: nowrap; }
+
+        input.pct-input { width: 48px; background: #0a1628; border: 1px solid #00d4ff55; color: #00d4ff; border-radius: 4px; text-align: center; font-size: 1em; padding: 2px; font-family: inherit; }
+        input.pct-input:focus { outline: none; border-color: #00d4ff; background: #0f2a4a; }
+        .pct-cell-group { color: #ffd93d; font-weight: bold; text-align: center; }
+        .progress-bar-wrap { background: #0a1628; border-radius: 10px; height: 22px; overflow: hidden; position: relative; border: 1px solid #333; margin-top: 6px; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #00838F, #00d4ff); transition: width 0.4s ease; }
+        .progress-bar-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.8em; font-weight: bold; color: #fff; text-shadow: 0 0 4px #000; }
+        .btn-reset { display: block; margin: 10px auto; padding: 6px 16px; background: #ff525233; color: #ff5252; border: 1px solid #ff5252; border-radius: 6px; font-size: 0.8em; cursor: pointer; }
+        .btn-reset:hover { background: #ff525255; }
+        
+        .risk-true { color: #ff5252; font-weight: bold; }
+        .risk-false { color: #666; }
+        
+        .legend { display: flex; gap: 20px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82em; }
+        .legend-color { width: 18px; height: 12px; border-radius: 2px; }
+        
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 20px 0; }
+        .card { background: #16213e; border-radius: 8px; padding: 14px; text-align: center; border: 1px solid #333; }
+        .card h3 { color: #00d4ff; font-size: 1.8em; }
+        .card p { color: #aaa; margin-top: 4px; font-size: 0.85em; }
+        
+        .chart-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        canvas { background: #16213e; border-radius: 8px; border: 1px solid #333; max-width: 100%; }
+        
+        .project-info { background: #16213e; border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .project-info div { text-align: center; }
+        .project-info .label { color: #aaa; font-size: 0.8em; }
+        .project-info .value { color: #fff; font-size: 0.95em; margin-top: 3px; }
+        
+        .hitos-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin: 15px 0 30px; }
+        .hito-card { background: #16213e; border-left: 4px solid #00d4ff; border-radius: 6px; padding: 14px 18px; border-top: 1px solid #333; border-right: 1px solid #333; border-bottom: 1px solid #333; }
+        .hito-card .hito-title { color: #fff; font-size: 0.9em; font-weight: bold; margin-bottom: 6px; }
+        .hito-card .hito-date { color: #00d4ff; font-size: 0.85em; }
+        .hito-card .hito-desc { color: #aaa; font-size: 0.78em; margin-top: 5px; }
+        .hito-card.completado { border-left-color: #4CAF50; }
+        .hito-card.en-curso { border-left-color: #FF9800; }
+        .hito-card.pendiente { border-left-color: #00d4ff; }
+
+        .critical-path { background: #16213e; border: 1px solid #333; border-radius: 8px; padding: 20px; margin: 15px 0; }
+        .cp-chain { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 15px 0; }
+        .cp-node { background: #ff525233; border: 1px solid #ff5252; border-radius: 6px; padding: 8px 12px; font-size: 0.8em; text-align: center; }
+        .cp-node .cp-task { color: #fff; font-weight: bold; }
+        .cp-node .cp-dev { color: #aaa; font-size: 0.85em; }
+        .cp-node .cp-days { color: #ff5252; font-size: 0.85em; }
+        .cp-arrow { color: #ff5252; font-size: 1.2em; }
+        .cp-summary { color: #aaa; font-size: 0.85em; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; }
+        .cp-summary strong { color: #ff5252; }
+
+        .deps-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; margin: 15px 0; }
+        .dep-card { background: #16213e; border: 1px solid #333; border-radius: 8px; padding: 15px; }
+        .dep-card .dep-title { color: #fff; font-weight: bold; font-size: 0.9em; margin-bottom: 8px; }
+        .dep-card .dep-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 0.8em; }
+        .dep-card .dep-from { color: #ff9800; }
+        .dep-card .dep-arrow { color: #666; }
+        .dep-card .dep-to { color: #00d4ff; }
+        .dep-card .dep-risk { color: #ff5252; font-size: 0.75em; margin-top: 8px; padding-top: 6px; border-top: 1px solid #333; }
+
+        .semaforo-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 15px 0; }
+        .semaforo-week { background: #16213e; border: 1px solid #333; border-radius: 8px; padding: 12px; }
+        .semaforo-week .week-title { color: #fff; font-size: 0.85em; font-weight: bold; margin-bottom: 8px; }
+        .semaforo-week .week-tasks { font-size: 0.75em; }
+        .semaforo-week .week-task { display: flex; align-items: center; gap: 6px; margin: 3px 0; color: #ccc; }
+        .semaforo-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .dot-green { background: #4CAF50; }
+        .dot-yellow { background: #FF9800; }
+        .dot-red { background: #ff5252; }
+        .dot-gray { background: #666; }
+
+        @media (max-width: 768px) { .chart-container { grid-template-columns: 1fr; } }
+
+        @media print {
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+            body { background: #1a1a2e !important; padding: 10px !important; font-size: 9px !important; }
+            #btnPdf { display: none !important; }
+            .gantt-container { overflow: visible !important; }
+            table.gantt { min-width: unset !important; width: 100% !important; table-layout: fixed; }
+            table.gantt th, table.gantt td { font-size: 6.5px !important; padding: 2px 2px !important; }
+            table.gantt td.day-cell { width: 14px !important; min-width: 14px !important; height: 16px !important; }
+            .bar { height: 10px !important; }
+            h1 { font-size: 14px !important; }
+            h2 { font-size: 11px !important; margin: 15px 0 8px !important; page-break-after: avoid; }
+            .summary-cards { grid-template-columns: repeat(6, 1fr) !important; gap: 6px !important; }
+            .card { padding: 8px !important; }
+            .card h3 { font-size: 1.2em !important; }
+            .card p { font-size: 0.7em !important; }
+            .hitos-container { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+            .hito-card { padding: 8px 10px !important; }
+            .chart-container { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+            canvas { max-height: 200px !important; }
+            .project-info { grid-template-columns: repeat(6, 1fr) !important; padding: 8px !important; }
+            .critical-path { padding: 10px !important; }
+            .cp-node { padding: 4px 6px !important; font-size: 7px !important; }
+            .deps-container { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+            .semaforo-container { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+            .legend { gap: 10px !important; }
+            @page { size: A3 landscape; margin: 5mm; }
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Cronograma Desarrollo Voicebot UNIMINUTO</h1>
+    <p class="subtitle">Voicebot Perfilador UNIMINUTO | Inicio: 12/08/26 | Fin: 02/10/26</p>
+    
+    <div class="project-info">
+        <div><div class="label">Proyecto</div><div class="value">Voicebot Perfilador UNIMINUTO</div></div>
+        <div><div class="label">Inicio</div><div class="value">12/08/2026</div></div>
+        <div><div class="label">Finalización</div><div class="value">02/10/2026</div></div>
+        <div><div class="label">No iniciadas</div><div class="value" id="statNotStarted">-</div></div>
+        <div><div class="label">En progreso</div><div class="value" id="statInProgress">-</div></div>
+        <div><div class="label">Completas</div><div class="value" id="statDone">-</div></div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color" style="background:#4CAF50"></div>Nicolas Yescas</div>
+        <div class="legend-item"><div class="legend-color" style="background:#2196F3"></div>Cristian Rodas - Nicolas Yescas</div>
+        <div class="legend-item"><div class="legend-color" style="background:#FF9800"></div>Equipo UNIMINUTO</div>
+        <div class="legend-item"><div class="legend-color" style="background:#9C27B0"></div>s4l - UNIMINUTO</div>
+    </div>
+
+    <div class="summary-cards" id="summaryCards"></div>
+
+    <div class="project-info" style="margin-top:15px">
+        <div style="grid-column: 1 / -1;">
+            <div class="label" style="font-size:0.95em;color:#00d4ff;font-weight:bold;">📈 Avance Consolidado del Proyecto</div>
+            <div class="progress-bar-wrap" style="height:28px;margin-top:10px;">
+                <div class="progress-bar-fill" id="projectProgressFill" style="width:0%"></div>
+                <div class="progress-bar-text" id="projectProgressText">0%</div>
+            </div>
+            <div style="color:#aaa;font-size:0.75em;margin-top:6px;" id="projectProgressDetail"></div>
+        </div>
+    </div>
+    <button class="btn-reset" onclick="resetProgress()">🔄 Reiniciar todos los avances a 0%</button>
+    
+    <h2>Diagrama de Gantt</h2>
+    <p style="color:#aaa;font-size:0.8em;margin-bottom:10px;">
+        💡 Edita el <b style="color:#00d4ff">% de Avance</b> de cada tarea y se guarda automáticamente en este navegador. 
+        El avance de módulos y del proyecto se recalcula ponderado por días de esfuerzo.
+        Alertas: <span style="color:#4CAF50">🟢 En tiempo</span> · 
+        <span style="color:#FF9800">⚠️ Retraso</span> (avance real por debajo de lo esperado a hoy) · 
+        <span style="color:#ff1744">🔴 Vencida</span> (pasó la fecha fin sin llegar al 100%).
+    </p>
+    <div class="gantt-container">
+        <table class="gantt" id="ganttTable"></table>
+    </div>
+
+    <h2>🏁 Entrega de Hitos</h2>
+    <div class="hitos-container" id="hitosContainer"></div>
+
+    <h2>🔴 Ruta Crítica</h2>
+    <div class="critical-path" id="criticalPath"></div>
+
+    <h2>👥 Timeline por Responsable (Swimlane)</h2>
+    <div class="gantt-container">
+        <table class="gantt" id="swimlaneTable"></table>
+    </div>
+
+    <h2>🔗 Mapa de Dependencias</h2>
+    <div class="deps-container" id="depsContainer"></div>
+
+    <h2>🚦 Semáforo Semanal</h2>
+    <div class="semaforo-container" id="semaforoContainer"></div>
+
+    <h2>Gráficas de Resumen</h2>
+    <div class="chart-container">
+        <canvas id="chartDev" width="500" height="300"></canvas>
+        <canvas id="chartReq" width="500" height="300"></canvas>
+    </div>
+
+    <script>
+    // Datos EXACTOS del Excel del cronograma Voicebot UNIMINUTO
+    const tasks = [
+        { id: "",  name: "Voicebot Perfilador UNIMINUTO", estado: "En progreso", dev: "Cristian Rodas - Nicolas Yescas", days: 37, start: "2026-08-12", end: "2026-10-02", preds: "", risk: "-", type: "project" },
+
+        { id: "",  name: "Configuración de Flujos Retell AI & Base de Conocimiento", estado: "Terminado", dev: "Nicolas Yescas", days: 3, start: "2026-08-12", end: "2026-08-14", preds: "", risk: "-", type: "group" },
+        { id: "1", name: "Configuración Agente Sofía & Legal Ley 1581", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-12", end: "2026-08-12", preds: "", risk: "-", type: "task", initPct: 100 },
+        { id: "2", name: "Carga & Estructuración RAG 37 Programas UMV", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-13", end: "2026-08-13", preds: "1", risk: "-", type: "task", initPct: 100 },
+        { id: "3", name: "Lógica Conversacional Grafo de 25 Nodos", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-14", end: "2026-08-14", preds: "2", risk: "-", type: "task", initPct: 100 },
+
+        { id: "",  name: "Plataforma de Operaciones Uniminuto & Webhooks", estado: "Terminado", dev: "Nicolas Yescas", days: 3, start: "2026-08-17", end: "2026-08-19", preds: "", risk: "-", type: "group" },
+        { id: "4", name: "Desarrollo de Vistas de Inspección & Grafo", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-17", end: "2026-08-17", preds: "", risk: "-", type: "task", initPct: 100 },
+        { id: "5", name: "Infraestructura Webhooks & Consola SIP WebRTC", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-18", end: "2026-08-18", preds: "4", risk: "-", type: "task", initPct: 100 },
+        { id: "6", name: "QA Hub Lateral, Inspector DOM & Login SSO Google", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-19", end: "2026-08-19", preds: "5", risk: "-", type: "task", initPct: 100 },
+
+        { id: "",  name: "Pruebas de Calidad de Nuestro Equipo & Matriz Retell API", estado: "Terminado", dev: "Nicolas Yescas", days: 3, start: "2026-08-20", end: "2026-08-24", preds: "", risk: "-", type: "group" },
+        { id: "7", name: "Ejecución Matriz de Pruebas (TC-01 a TC-04)", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-20", end: "2026-08-20", preds: "6", risk: "-", type: "task", initPct: 100 },
+        { id: "8", name: "Pruebas Escenarios Bordes & Robustez (TC-05 a TC-09)", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-21", end: "2026-08-21", preds: "7", risk: "-", type: "task", initPct: 100 },
+        { id: "9", name: "Batería 21 Programas 2026 & Latencia SIP (TC-10)", estado: "Culminado", dev: "Cristian Rodas - Nicolas Yescas", days: 1, start: "2026-08-24", end: "2026-08-24", preds: "8", risk: "-", type: "task", initPct: 100 },
+
+        { id: "",  name: "Pruebas UAT & Validación por el Equipo de Uniminuto", estado: "En progreso", dev: "Equipo UNIMINUTO", days: 5, start: "2026-08-31", end: "2026-09-04", preds: "", risk: "TRUE", type: "group" },
+        { id: "10", name: "Handover & Onboarding UAT al Equipo Uniminuto", estado: "En progreso", dev: "Equipo UNIMINUTO", days: 2, start: "2026-08-31", end: "2026-09-01", preds: "9", risk: "TRUE", type: "task", initPct: 0 },
+        { id: "11", name: "Jornada de Llamadas UAT en Vivo & Auditoría RAG", estado: "No se ha iniciado", dev: "Equipo UNIMINUTO", days: 2, start: "2026-09-02", end: "2026-09-03", preds: "10", risk: "TRUE", type: "task", initPct: 0 },
+        { id: "12", name: "Pruebas Enrutamiento SIP Inconcert & Tipificaciones CRM", estado: "No se ha iniciado", dev: "Equipo UNIMINUTO", days: 2, start: "2026-09-04", end: "2026-09-08", preds: "11", risk: "TRUE", type: "task", initPct: 0 },
+
+        { id: "",  name: "Fine-Tuning & Entrega Final del Agente con VoBo Uniminuto", estado: "No se ha iniciado", dev: "s4l - UNIMINUTO", days: 4, start: "2026-09-09", end: "2026-09-14", preds: "", risk: "TRUE", type: "group" },
+        { id: "13", name: "Fine-Tuning de Prompt & Ajustes Fijos en Staging", estado: "No se ha iniciado", dev: "Cristian Rodas - Nicolas Yescas", days: 3, start: "2026-09-09", end: "2026-09-11", preds: "12", risk: "-", type: "task", initPct: 0 },
+        { id: "14", name: "Entrega Final del Agente Aprobado (VoBo Uniminuto)", estado: "No se ha iniciado", dev: "Nicolas Yescas", days: 1, start: "2026-09-14", end: "2026-09-14", preds: "13", risk: "-", type: "task", initPct: 0 },
+    ];
+
+    // ===== Gestión de % de avance (persistente en localStorage) =====
+    const STORAGE_KEY = 'voicebot_uniminuto_avances';
+
+    function loadProgress() {
+        let saved = {};
+        try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { saved = {}; }
+        tasks.forEach(t => {
+            if (t.type === 'task') {
+                if (saved[t.id] !== undefined) t.progress = saved[t.id];
+                else t.progress = (t.initPct !== undefined ? t.initPct : 0);
+            }
+        });
+    }
+
+    function saveProgress() {
+        const data = {};
+        tasks.forEach(t => { if (t.type === 'task') data[t.id] = t.progress || 0; });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function setTaskProgress(id, value) {
+        let v = parseInt(value, 10);
+        if (isNaN(v)) v = 0;
+        v = Math.max(0, Math.min(100, v));
+        const task = tasks.find(t => t.id === id && t.type === 'task');
+        if (task) {
+            task.progress = v;
+            saveProgress();
+            refreshAll();
+        }
+    }
+
+    function resetProgress() {
+        if (confirm('¿Reiniciar todos los avances a 0%?')) {
+            tasks.forEach(t => { if (t.type === 'task') t.progress = 0; });
+            saveProgress();
+            refreshAll();
+        }
+    }
+
+    // Avance ponderado de un grupo (por días de sus tareas)
+    function getGroupProgress(groupIndex) {
+        const groupTasks = [];
+        for (let i = groupIndex + 1; i < tasks.length; i++) {
+            if (tasks[i].type === 'group' || tasks[i].type === 'project') break;
+            if (tasks[i].type === 'task') groupTasks.push(tasks[i]);
+        }
+        if (groupTasks.length === 0) return 0;
+        const totalDays = groupTasks.reduce((s, t) => s + t.days, 0);
+        const weighted = groupTasks.reduce((s, t) => s + t.days * (t.progress || 0), 0);
+        return totalDays > 0 ? Math.round(weighted / totalDays) : 0;
+    }
+
+    // Avance total del proyecto (ponderado por días de todas las tareas)
+    function getProjectProgress() {
+        const activeTasks = tasks.filter(t => t.type === 'task');
+        const totalDays = activeTasks.reduce((s, t) => s + t.days, 0);
+        const weighted = activeTasks.reduce((s, t) => s + t.days * (t.progress || 0), 0);
+        return totalDays > 0 ? Math.round(weighted / totalDays) : 0;
+    }
+
+    function refreshAll() {
+        renderGantt();
+        renderSummary();
+        renderProjectProgress();
+    }
+
+    function renderProjectProgress() {
+        const pct = getProjectProgress();
+        document.getElementById('projectProgressFill').style.width = pct + '%';
+        document.getElementById('projectProgressText').textContent = pct + '%';
+        const activeTasks = tasks.filter(t => t.type === 'task');
+        const completed = activeTasks.filter(t => (t.progress || 0) === 100).length;
+        const inProgress = activeTasks.filter(t => (t.progress || 0) > 0 && (t.progress || 0) < 100).length;
+        const notStarted = activeTasks.filter(t => (t.progress || 0) === 0).length;
+        document.getElementById('projectProgressDetail').innerHTML = 
+            `✅ Completadas: <b style="color:#4CAF50">${completed}</b> &nbsp;|&nbsp; 🔵 En progreso: <b style="color:#00d4ff">${inProgress}</b> &nbsp;|&nbsp; ⚪ Sin iniciar: <b style="color:#aaa">${notStarted}</b> &nbsp;|&nbsp; Avance ponderado por días de esfuerzo.`;
+        document.getElementById('statNotStarted').textContent = notStarted;
+        document.getElementById('statInProgress').textContent = inProgress;
+        document.getElementById('statDone').textContent = completed;
+    }
+
+    // Rango del proyecto
+    const projectStart = new Date(2026, 7, 12);
+    const projectEnd = new Date(2026, 9, 2);
+
+    // Generar días hábiles
+    function getBusinessDaysRange(start, end) {
+        const days = [];
+        let current = new Date(start);
+        while (current <= end) {
+            const dow = current.getDay();
+            if (dow !== 0 && dow !== 6) days.push(new Date(current));
+            current.setDate(current.getDate() + 1);
+        }
+        return days;
+    }
+
+    const allDays = getBusinessDaysRange(projectStart, projectEnd);
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    function getDayIndex(dateStr) {
+        const d = new Date(dateStr + "T00:00:00");
+        for (let i = 0; i < allDays.length; i++) {
+            if (allDays[i].getFullYear() === d.getFullYear() && 
+                allDays[i].getMonth() === d.getMonth() && 
+                allDays[i].getDate() === d.getDate()) return i;
+        }
+        let best = 0, bestDiff = Infinity;
+        for (let i = 0; i < allDays.length; i++) {
+            const diff = Math.abs(allDays[i] - d);
+            if (diff < bestDiff) { bestDiff = diff; best = i; }
+        }
+        return best;
+    }
+
+    function getDevColor(dev) {
+        const d = (dev || '').toLowerCase();
+        if (d.includes('cristian')) return '#2196F3';
+        if (d.includes('equipo')) return '#FF9800';
+        if (d.includes('s4l')) return '#9C27B0';
+        if (d.includes('nicolas')) return '#4CAF50';
+        return '#546E7A';
+    }
+
+    function getDevClass(dev) {
+        const d = (dev || '').toLowerCase();
+        if (d.includes('cristian')) return 'bar-cristian';
+        if (d.includes('equipo')) return 'bar-equipo';
+        if (d.includes('s4l')) return 'bar-s4l';
+        if (d.includes('nicolas')) return 'bar-nicolas';
+        return 'bar-group';
+    }
+
+    // "Hoy" para calcular retrasos. Por defecto usa la fecha actual del sistema.
+    const TODAY = new Date();
+
+    function getExpectedProgress(task) {
+        const start = new Date(task.start + "T00:00:00");
+        const end = new Date(task.end + "T23:59:59");
+        if (TODAY < start) return 0;
+        if (TODAY > end) return 100;
+        const totalBiz = countBusinessDays(start, end);
+        const elapsedBiz = countBusinessDays(start, TODAY);
+        return totalBiz > 0 ? Math.round(Math.min(100, (elapsedBiz / totalBiz) * 100)) : 0;
+    }
+
+    function countBusinessDays(start, end) {
+        let count = 0;
+        let cur = new Date(start);
+        cur.setHours(0,0,0,0);
+        const e = new Date(end);
+        e.setHours(0,0,0,0);
+        while (cur <= e) {
+            const dow = cur.getDay();
+            if (dow !== 0 && dow !== 6) count++;
+            cur.setDate(cur.getDate() + 1);
+        }
+        return count;
+    }
+
+    function getDelayStatus(task) {
+        const prog = task.progress || 0;
+        const expected = getExpectedProgress(task);
+        const end = new Date(task.end + "T23:59:59");
+        if (prog >= 100) return 'done';
+        if (TODAY > end && prog < 100) return 'critical-delay';
+        if (expected === 0) return 'notstarted';
+        if (prog < expected - 10) return 'delayed';
+        return 'ontrack';
+    }
+
+    function delayBadge(status) {
+        switch (status) {
+            case 'critical-delay': return '<span title="Vencida sin completar" style="color:#ff1744;font-weight:bold">🔴 VENCIDA</span>';
+            case 'delayed': return '<span title="Por debajo del avance esperado" style="color:#FF9800;font-weight:bold">⚠️ RETRASO</span>';
+            case 'done': return '<span title="Completada" style="color:#4CAF50;font-weight:bold">✅ OK</span>';
+            case 'ontrack': return '<span title="En tiempo" style="color:#4CAF50">🟢 En tiempo</span>';
+            default: return '<span style="color:#666">— Sin iniciar</span>';
+        }
+    }
+
+    // Renderizar Gantt
+    function renderGantt() {
+        const table = document.getElementById('ganttTable');
+        let header = '<thead><tr><th>Riesgo</th><th style="min-width:300px">Nombre de la tarea</th><th style="min-width:95px">Alerta</th><th style="min-width:160px">Asignado a</th><th>Dur.</th><th>Inicio</th><th>Fin</th><th style="min-width:60px">% Avance</th><th>Pred.</th>';
+        allDays.forEach(d => {
+            const isMonday = d.getDay() === 1;
+            const border = isMonday ? 'border-left:2px solid #444;' : '';
+            header += `<th class="day-cell" style="${border}" title="${d.toLocaleDateString('es-CO')}">${d.getDate()}<br><span style="font-size:0.6em;color:#888">${months[d.getMonth()]}</span></th>`;
+        });
+        header += '</tr></thead>';
+        
+        let body = '<tbody>';
+        tasks.forEach((task, taskIdx) => {
+            const startIdx = getDayIndex(task.start);
+            const endIdx = getDayIndex(task.end);
+            const rowClass = task.type === 'project' ? 'row-project' : (task.type === 'group' ? 'row-group' : '');
+            const barClass = task.type === 'project' ? 'bar-project' : (task.type === 'group' ? 'bar-group' : getDevClass(task.dev));
+            const indent = task.type === 'task' ? '&nbsp;&nbsp;&nbsp;&nbsp;' : (task.type === 'group' ? '&nbsp;&nbsp;' : '');
+            const riskIcon = task.risk === 'TRUE' ? '<span class="risk-true">🚩</span>' : '<span class="risk-false">—</span>';
+
+            let progress = 0;
+            let delayStatus = '';
+            if (task.type === 'task') {
+                progress = task.progress || 0;
+                delayStatus = getDelayStatus(task);
+            } else if (task.type === 'group') {
+                progress = getGroupProgress(taskIdx);
+            } else if (task.type === 'project') {
+                progress = getProjectProgress();
+            }
+
+            let rowStyle = '';
+            if (delayStatus === 'critical-delay') rowStyle = 'style="background:#ff174415 !important"';
+            else if (delayStatus === 'delayed') rowStyle = 'style="background:#FF980012 !important"';
+            
+            body += `<tr class="${rowClass}" ${rowStyle}>`;
+            body += `<td class="task-info" style="text-align:center">${riskIcon}</td>`;
+            body += `<td class="task-info">${indent}${task.name}</td>`;
+            if (task.type === 'task') {
+                body += `<td class="task-info" style="font-size:0.68em;text-align:center">${delayBadge(delayStatus)}</td>`;
+            } else {
+                body += `<td class="task-info" style="text-align:center;color:#666">—</td>`;
+            }
+            body += `<td class="task-info">${task.dev || ''}</td>`;
+            body += `<td class="task-info" style="text-align:center">${task.days}d</td>`;
+            body += `<td class="task-info">${formatDate(task.start)}</td>`;
+            body += `<td class="task-info">${formatDate(task.end)}</td>`;
+            if (task.type === 'task') {
+                body += `<td class="task-info" style="text-align:center"><input type="number" min="0" max="100" step="5" value="${progress}" class="pct-input" onchange="setTaskProgress('${task.id}', this.value)" />%</td>`;
+            } else {
+                body += `<td class="task-info pct-cell-group">${progress}%</td>`;
+            }
+            body += `<td class="task-info">${task.preds}</td>`;
+            
+            allDays.forEach((d, i) => {
+                const isMonday = d.getDay() === 1;
+                const border = isMonday ? 'border-left:2px solid #333;' : '';
+                if (i >= startIdx && i <= endIdx) {
+                    const color = task.type === 'task' ? getDevColor(task.dev) : '#546E7A';
+                    const trackClass = progress > 0 ? 'bar-progress-track' : '';
+                    body += `<td class="day-cell" style="${border}background:${color}15"><div class="bar ${barClass} ${trackClass}"></div></td>`;
+                } else {
+                    body += `<td class="day-cell" style="${border}"></td>`;
+                }
+            });
+            body += '</tr>';
+        });
+        body += '</tbody>';
+        
+        table.innerHTML = header + body;
+        drawProgressOverlays();
+    }
+
+    function drawProgressOverlays() {
+        const table = document.getElementById('ganttTable');
+        const rows = table.querySelectorAll('tbody tr');
+        tasks.forEach((task, taskIdx) => {
+            const row = rows[taskIdx];
+            if (!row) return;
+            let progress = 0;
+            if (task.type === 'task') progress = task.progress || 0;
+            else if (task.type === 'group') progress = getGroupProgress(taskIdx);
+            else if (task.type === 'project') progress = getProjectProgress();
+            if (progress <= 0) return;
+
+            const startIdx = getDayIndex(task.start);
+            const endIdx = getDayIndex(task.end);
+            const cells = row.querySelectorAll('td.day-cell');
+            const total = endIdx - startIdx + 1;
+            const filledCount = total * (progress / 100);
+            for (let k = 0; k < total; k++) {
+                const cell = cells[startIdx + k];
+                if (!cell) continue;
+                const bar = cell.querySelector('.bar');
+                if (!bar) continue;
+                let fillPct = 0;
+                if (k + 1 <= filledCount) fillPct = 100;
+                else if (k < filledCount) fillPct = (filledCount - k) * 100;
+                if (fillPct > 0) {
+                    const ov = document.createElement('div');
+                    ov.className = 'bar-progress';
+                    ov.style.width = fillPct + '%';
+                    bar.appendChild(ov);
+                }
+            }
+            const midCell = cells[startIdx + Math.floor(total / 2)];
+            if (midCell) {
+                const lbl = document.createElement('div');
+                lbl.className = 'pct-label';
+                lbl.textContent = progress + '%';
+                midCell.appendChild(lbl);
+            }
+        });
+    }
+
+    function formatDate(dateStr) {
+        const parts = dateStr.split('-');
+        return `${parts[2]}/${parts[1]}`;
+    }
+
+    // Summary
+    function renderSummary() {
+        const container = document.getElementById('summaryCards');
+        const activeTasks = tasks.filter(t => t.type === 'task');
+        const totalTaskDays = activeTasks.reduce((s, t) => s + t.days, 0);
+        const devs = [...new Set(activeTasks.map(t => t.dev).filter(Boolean))];
+        const delayed = activeTasks.filter(t => getDelayStatus(t) === 'delayed').length;
+        const overdue = activeTasks.filter(t => getDelayStatus(t) === 'critical-delay').length;
+        const projPct = getProjectProgress();
+
+        container.innerHTML = `
+            <div class="card"><h3>${projPct}%</h3><p>Avance total</p></div>
+            <div class="card"><h3>${activeTasks.length}</h3><p>Actividades</p></div>
+            <div class="card"><h3>${devs.length}</h3><p>Responsables</p></div>
+            <div class="card"><h3>${totalTaskDays}d</h3><p>Días-persona</p></div>
+            <div class="card"><h3 style="color:#FF9800">${delayed}</h3><p>Con retraso ⚠️</p></div>
+            <div class="card"><h3 style="color:#ff1744">${overdue}</h3><p>Vencidas 🔴</p></div>
+        `;
+    }
+
+    // Gráficas
+    function renderCharts() {
+        const activeTasks = tasks.filter(t => t.type === 'task');
+        const devDays = {};
+        activeTasks.forEach(t => {
+            if (t.dev) devDays[t.dev] = (devDays[t.dev] || 0) + t.days;
+        });
+        const ctx1 = document.getElementById('chartDev').getContext('2d');
+        drawBarChart(ctx1, 'Carga por Responsable (días)', Object.keys(devDays), Object.values(devDays), 
+            Object.keys(devDays).map(d => getDevColor(d)));
+
+        const reqDays = {};
+        tasks.filter(t => t.type === 'group').forEach(g => { reqDays[g.name] = g.days; });
+        const ctx2 = document.getElementById('chartReq').getContext('2d');
+        const colors2 = ['#00d4ff','#ff6b6b','#ffd93d','#6bcf7f','#c56cf0','#ff9ff3','#74b9ff'];
+        drawBarChart(ctx2, 'Duración por Módulo (días)', Object.keys(reqDays), Object.values(reqDays), colors2);
+    }
+
+    function drawBarChart(ctx, title, labels, values, colors) {
+        const canvas = ctx.canvas;
+        const W = canvas.width, H = canvas.height;
+        const padding = { top: 40, bottom: 95, left: 45, right: 20 };
+        const chartW = W - padding.left - padding.right;
+        const chartH = H - padding.top - padding.bottom;
+        const maxVal = Math.max(...values) * 1.15;
+        const barWidth = Math.min(chartW / labels.length * 0.65, 60);
+        const gap = chartW / labels.length;
+
+        ctx.fillStyle = '#16213e';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#00d4ff';
+        ctx.font = 'bold 13px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, W / 2, 25);
+
+        ctx.strokeStyle = '#444';
+        ctx.beginPath();
+        ctx.moveTo(padding.left, padding.top);
+        ctx.lineTo(padding.left, H - padding.bottom);
+        ctx.lineTo(W - padding.right, H - padding.bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = '#666';
+        ctx.font = '10px Segoe UI';
+        ctx.textAlign = 'right';
+        for (let i = 0; i <= 4; i++) {
+            const y = padding.top + chartH - (chartH * i / 4);
+            const val = Math.round(maxVal * i / 4);
+            ctx.fillText(val, padding.left - 5, y + 3);
+            ctx.strokeStyle = '#2a2a4a';
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(W - padding.right, y);
+            ctx.stroke();
+        }
+
+        labels.forEach((label, i) => {
+            const x = padding.left + gap * i + (gap - barWidth) / 2;
+            const barH = (values[i] / maxVal) * chartH;
+            const y = padding.top + chartH - barH;
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.fillRect(x, y, barWidth, barH);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(values[i] + 'd', x + barWidth / 2, y - 5);
+            ctx.fillStyle = '#aaa';
+            ctx.font = '8.5px Segoe UI';
+            ctx.save();
+            ctx.translate(x + barWidth / 2, H - padding.bottom + 8);
+            ctx.rotate(Math.PI / 4.5);
+            ctx.textAlign = 'left';
+            ctx.fillText(label.length > 28 ? label.substring(0, 28) + '...' : label, 0, 0);
+            ctx.restore();
+        });
+    }
+
+    // Hitos
+    function renderHitos() {
+        const hitos = [
+            { title: "Configuración de Flujos Retell AI & Base de Conocimiento", date: "14/08/2026", desc: "Agente Sofía, Legal Ley 1581, RAG 37 programas y grafo de 25 nodos", estado: "completado" },
+            { title: "Plataforma de Operaciones Uniminuto & Webhooks", date: "19/08/2026", desc: "Vistas de inspección, infraestructura webhooks, SIP WebRTC y login SSO", estado: "completado" },
+            { title: "Pruebas de Calidad de Nuestro Equipo & Matriz Retell API", date: "24/08/2026", desc: "Matriz TC-01 a TC-10, escenarios borde y batería 21 programas 2026", estado: "completado" },
+            { title: "Pruebas UAT & Validación por el Equipo de Uniminuto", date: "04/09/2026", desc: "Handover, jornada de llamadas UAT, auditoría RAG y enrutamiento SIP", estado: "en-curso" },
+            { title: "Fine-Tuning & Entrega Final del Agente con VoBo Uniminuto", date: "14/09/2026", desc: "Ajustes de prompt en staging y entrega final aprobada (VoBo Uniminuto)", estado: "pendiente" },
+        ];
+        const container = document.getElementById('hitosContainer');
+        container.innerHTML = hitos.map((h, i) => `
+            <div class="hito-card ${h.estado}">
+                <div class="hito-title">🎯 Hito ${i + 1}: ${h.title}</div>
+                <div class="hito-date">📅 Entrega: ${h.date}</div>
+                <div class="hito-desc">${h.desc}</div>
+            </div>
+        `).join('');
+    }
+
+    // Ruta Crítica
+    function renderCriticalPath() {
+        const criticalChain = [
+            { name: "Config. Flujos Retell AI & BC", dev: "Nicolas Yescas", days: 3, dates: "12/08 - 14/08" },
+            { name: "Plataforma Operaciones & Webhooks", dev: "Nicolas Yescas", days: 3, dates: "17/08 - 19/08" },
+            { name: "Pruebas Calidad & Matriz Retell", dev: "Nicolas Yescas", days: 3, dates: "20/08 - 24/08" },
+            { name: "Pruebas UAT (Equipo Uniminuto)", dev: "Equipo UNIMINUTO", days: 5, dates: "31/08 - 04/09" },
+            { name: "Fine-Tuning & Entrega Final", dev: "s4l - UNIMINUTO", days: 4, dates: "09/09 - 14/09" },
+        ];
+        const container = document.getElementById('criticalPath');
+        function renderChain(chain, label) {
+            let html = `<div style="color:#fff;font-size:0.9em;font-weight:bold;margin-bottom:8px">${label}</div><div class="cp-chain">`;
+            chain.forEach((node, i) => {
+                html += `<div class="cp-node">
+                    <div class="cp-task">${node.name}</div>
+                    <div class="cp-dev">${node.dev}</div>
+                    <div class="cp-days">${node.days}d | ${node.dates}</div>
+                </div>`;
+                if (i < chain.length - 1) html += `<span class="cp-arrow">→</span>`;
+            });
+            html += '</div>';
+            return html;
+        }
+        const totalDays = criticalChain.reduce((s, n) => s + n.days, 0);
+        container.innerHTML = `
+            ${renderChain(criticalChain, '🔴 Ruta Crítica: Configuración → Plataforma → Pruebas → UAT → Entrega Final')}
+            <div class="cp-summary">
+                <strong>⚠️ Impacto:</strong> La cadena secuencial completa suma ${totalDays} días de esfuerzo y define la fecha de cierre 02/10/26. 
+                Cada módulo depende del anterior, por lo que un retraso en cualquier fase desplaza toda la entrega final.
+                <br><br><strong>🚨 Riesgo principal:</strong> La fase UAT depende del Equipo Uniminuto (agente externo). Un retraso en la validación bloquea el Fine-Tuning y la entrega final con VoBo.
+            </div>
+        `;
+    }
+
+    // Swimlane por responsable
+    function renderSwimlane() {
+        const table = document.getElementById('swimlaneTable');
+        const devNames = [...new Set(tasks.filter(t => t.type === 'task').map(t => t.dev))];
+        let header = '<thead><tr><th style="min-width:200px">Responsable</th><th style="min-width:260px">Tarea</th><th>Días</th>';
+        allDays.forEach(d => {
+            const isMonday = d.getDay() === 1;
+            const border = isMonday ? 'border-left:2px solid #444;' : '';
+            header += `<th class="day-cell" style="${border}" title="${d.toLocaleDateString('es-CO')}">${d.getDate()}<br><span style="font-size:0.6em;color:#888">${months[d.getMonth()]}</span></th>`;
+        });
+        header += '</tr></thead>';
+        let body = '<tbody>';
+        devNames.forEach(devName => {
+            const devTasks = tasks.filter(t => t.type === 'task' && t.dev === devName);
+            devTasks.forEach((task, idx) => {
+                const startIdx = getDayIndex(task.start);
+                const endIdx = getDayIndex(task.end);
+                body += '<tr>';
+                if (idx === 0) {
+                    body += `<td class="task-info" rowspan="${devTasks.length}" style="background:${getDevColor(devName)}22;color:${getDevColor(devName)};font-weight:bold;vertical-align:middle">${devName}</td>`;
+                }
+                body += `<td class="task-info" style="font-size:0.7em">${task.name}</td>`;
+                body += `<td class="task-info" style="text-align:center">${task.days}d</td>`;
+                allDays.forEach((d, i) => {
+                    const isMonday = d.getDay() === 1;
+                    const border = isMonday ? 'border-left:2px solid #333;' : '';
+                    if (i >= startIdx && i <= endIdx) {
+                        body += `<td class="day-cell" style="${border}background:${getDevColor(devName)}22"><div class="bar ${getDevClass(devName)}"></div></td>`;
+                    } else {
+                        body += `<td class="day-cell" style="${border}"></td>`;
+                    }
+                });
+                body += '</tr>';
+            });
+        });
+        body += '</tbody>';
+        table.innerHTML = header + body;
+    }
+
+    // Mapa de dependencias
+    function renderDependencies() {
+        const deps = [
+            {
+                task: "Módulo: Pruebas UAT (Equipo Uniminuto)",
+                depends: ["Pruebas de Calidad & Matriz Retell API (interno)"],
+                risk: "El UAT solo puede iniciar cuando el equipo interno cierra sus pruebas. Depende de la disponibilidad del Equipo Uniminuto."
+            },
+            {
+                task: "Tarea 11: Jornada de Llamadas UAT en Vivo & Auditoría RAG",
+                depends: ["Tarea 10: Handover & Onboarding UAT"],
+                risk: "Secuencial. No hay llamadas UAT en vivo hasta completar el onboarding del equipo."
+            },
+            {
+                task: "Tarea 13: Fine-Tuning de Prompt & Ajustes en Staging",
+                depends: ["Tarea 12: Pruebas Enrutamiento SIP & Tipificaciones CRM"],
+                risk: "⚠️ CRÍTICA: El fine-tuning depende de los hallazgos del UAT. Un retraso del Equipo Uniminuto desplaza el ajuste final."
+            },
+            {
+                task: "Tarea 14: Entrega Final del Agente (VoBo Uniminuto)",
+                depends: ["Tarea 13: Fine-Tuning de Prompt & Ajustes"],
+                risk: "⚠️ GATE FINAL: Cierre del proyecto. Requiere VoBo de Uniminuto tras el fine-tuning."
+            },
+        ];
+        const container = document.getElementById('depsContainer');
+        container.innerHTML = deps.map(d => `
+            <div class="dep-card">
+                <div class="dep-title">🎯 ${d.task}</div>
+                ${d.depends.map(dep => `
+                    <div class="dep-item">
+                        <span class="dep-from">${dep}</span>
+                        <span class="dep-arrow">→</span>
+                        <span class="dep-to">${d.task.split(':')[0]}</span>
+                    </div>
+                `).join('')}
+                <div class="dep-risk">⚠️ ${d.risk}</div>
+            </div>
+        `).join('');
+    }
+
+    // Semáforo semanal
+    function renderSemaforo() {
+        const weeks = [
+            { title: "Semana 1 (12/08 - 14/08)", tasks: [
+                { name: "Agente Sofía & Legal Ley 1581", dev: "Nicolas Yescas", status: "green" },
+                { name: "RAG 37 Programas UMV", dev: "Nicolas Yescas", status: "green" },
+                { name: "Grafo de 25 Nodos", dev: "Nicolas Yescas", status: "green" },
+            ]},
+            { title: "Semana 2 (17/08 - 21/08)", tasks: [
+                { name: "Vistas de Inspección & Grafo", dev: "Nicolas Yescas", status: "green" },
+                { name: "Webhooks & Consola SIP WebRTC", dev: "Nicolas Yescas", status: "green" },
+                { name: "QA Hub, Inspector DOM & SSO Google", dev: "Nicolas Yescas", status: "green" },
+                { name: "Matriz Pruebas (TC-01 a TC-04)", dev: "Nicolas Yescas", status: "green" },
+                { name: "Escenarios Borde (TC-05 a TC-09)", dev: "Nicolas Yescas", status: "green" },
+            ]},
+            { title: "Semana 3 (24/08 - 28/08)", tasks: [
+                { name: "Batería 21 Programas & Latencia (TC-10)", dev: "Nicolas Yescas", status: "green" },
+            ]},
+            { title: "Semana 4 (31/08 - 04/09)", tasks: [
+                { name: "Handover & Onboarding UAT", dev: "Equipo UNIMINUTO", status: "yellow" },
+                { name: "Jornada Llamadas UAT & Auditoría RAG", dev: "Equipo UNIMINUTO", status: "gray" },
+                { name: "Enrutamiento SIP & Tipificaciones CRM", dev: "Equipo UNIMINUTO", status: "gray" },
+            ]},
+            { title: "Semana 5 (09/09 - 11/09)", tasks: [
+                { name: "Fine-Tuning de Prompt en Staging", dev: "Cristian Rodas - Nicolas Yescas", status: "gray" },
+            ]},
+            { title: "Semana 6 (14/09)", tasks: [
+                { name: "Entrega Final del Agente (VoBo)", dev: "Nicolas Yescas", status: "gray" },
+            ]},
+        ];
+        const container = document.getElementById('semaforoContainer');
+        container.innerHTML = weeks.map(w => `
+            <div class="semaforo-week">
+                <div class="week-title">📅 ${w.title}</div>
+                <div class="week-tasks">
+                    ${w.tasks.map(t => `
+                        <div class="week-task">
+                            <div class="semaforo-dot dot-${t.status}"></div>
+                            <span>${t.name} <span style="color:${getDevColor(t.dev)}">(${t.dev})</span></span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Inicialización
+    loadProgress();
+    renderHitos();
+    renderCriticalPath();
+    renderSwimlane();
+    renderDependencies();
+    renderSemaforo();
+    renderGantt();
+    renderSummary();
+    renderProjectProgress();
+    renderCharts();
+    </script>
+</body>
+</html>
